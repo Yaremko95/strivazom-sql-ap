@@ -1,6 +1,10 @@
 const experss = require("express");
 const db = require("../../db");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const router = experss.Router();
+const upload = multer({ dest: path.join(__dirname, "../../public/uploads") });
 
 router
   .route("/")
@@ -40,22 +44,34 @@ router
       res.status(500).send("Internal server error");
     }
   })
-  .post(async (req, res) => {
+  .post(upload.single("file"), async (req, res) => {
     try {
       console.log(req.body);
-      let result = await db.query(
-        `INSERT INTO products( name, description, brand, "imageUrl", category, price)
+      const file =
+        global.appRoot + "/public/uploads/" + `${req.file.filename}.png`;
+      fs.rename(req.file.path, file, async function (err) {
+        if (err) {
+          console.log(err);
+          res.send(500);
+        } else {
+          let result = await db
+            .query(
+              `INSERT INTO products( name, description, brand, "imageUrl", category, price)
             VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          req.body.name,
-          req.body.description,
-          req.body.brand,
-          req.body.imageUrl,
-          req.body.category,
-          parseFloat(req.body.price),
-        ]
-      );
-      if (result.rowCount === 1) res.send("ok");
+              [
+                req.body.name,
+                req.body.description,
+                req.body.brand,
+                req.file.filename,
+                req.body.category,
+                parseFloat(req.body.price),
+              ]
+            )
+            .then((r) => {
+              res.send(req.file.path);
+            });
+        }
+      });
     } catch (e) {
       console.log(e);
       res.status(500).send("Internal server error");
