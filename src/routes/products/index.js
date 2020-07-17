@@ -6,7 +6,11 @@ router
   .route("/")
   .get(async (req, res) => {
     try {
-      let result = await db.query("SELECT * FROM products");
+      let result = await db.query(
+        `SELECT *
+          FROM products  LEFT JOIN LATERAL (  SELECT json_agg(json_build_object('_id', reviews._id
+            , 'comment', reviews.comment, 'rate', reviews.rate, 'createdAt', "createdAt")) AS reviews  FROM   reviews  WHERE  products._id = "productId") reviews ON true`
+      );
       console.log(result);
       if (result.rowCount > 0) res.send({ data: result.rows });
       res.status(404).send("not found");
