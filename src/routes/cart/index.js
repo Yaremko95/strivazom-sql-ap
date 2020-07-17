@@ -34,10 +34,13 @@ router
   })
   .delete(async (req, res) => {
     try {
-      let result = await db.query(
-        ` DELETE FROM public.carts WHERE _id in (select _id from carts where "productId"=$1 limit 1)`,
-        [req.params.prodId]
-      );
+      let sqlQuery = `DELETE FROM public.carts WHERE _id in (select _id from carts where "productId"=$1 )`;
+      if (req.query.limit !== "false")
+        sqlQuery =
+          ' DELETE FROM public.carts WHERE _id in (select _id from carts where "productId"=$1 limit 1)';
+
+      console.log(sqlQuery);
+      let result = await db.query(sqlQuery, [req.params.prodId]);
       if (result.rowCount === 0) return res.status(404).send("Not found");
 
       res.send("ok");
