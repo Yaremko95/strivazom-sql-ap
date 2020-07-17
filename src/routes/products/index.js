@@ -6,14 +6,35 @@ router
   .route("/")
   .get(async (req, res) => {
     try {
-      let result = await db.query(
-        `SELECT *
-          FROM products  LEFT JOIN LATERAL (  SELECT json_agg(json_build_object('_id', reviews._id
-            , 'comment', reviews.comment, 'rate', reviews.rate, 'createdAt', "createdAt")) AS reviews  FROM   reviews  WHERE  products._id = "productId") reviews ON true`
-      );
-      console.log(result);
-      if (result.rowCount > 0) res.send({ data: result.rows });
-      res.status(404).send("not found");
+      let sqlQuery = `SELECT *
+          FROM products  LEFT JOIN LATERAL 
+                            (  SELECT json_agg(json_build_object('_id', reviews._id , 'comment', reviews.comment, 'rate', reviews.rate, 'createdAt', "createdAt")) 
+                            AS reviews  
+                             FROM   reviews  WHERE  products._id = "productId") reviews ON true`;
+      const { query } = req;
+      console.log(query);
+      let params = [];
+      for (let key in query) {
+        if (typeof query[key] === "object") {
+          query[key].forEach((item) => {
+            params.push(item);
+
+            if (params.length === 1)
+              sqlQuery += ` WHERE ${key} ILIKE '%${item}%' `;
+            else sqlQuery += ` or ${key} ILIKE '%${item}%' `;
+          });
+        } else {
+          params.push(query[key]);
+
+          if (params.length === 1)
+            sqlQuery += ` WHERE ${key} ILIKE '%${query[key]}%' `;
+          else sqlQuery += ` AND ${key} ILIKE '%${query[key]}%' `;
+        }
+      }
+      console.log(sqlQuery);
+      let result = await db.query(sqlQuery);
+
+      res.send({ data: result.rows });
     } catch (e) {
       console.log(e);
       res.status(500).send("Internal server error");
@@ -58,7 +79,10 @@ router
   })
   .put(async (req, res) => {
     try {
-      console.log(req.body);
+      delete req.body.reviews;
+      delete req.body.createdAt;
+      delete req.body.updatedAt;
+
       const params = [];
       let query = `UPDATE products SET `;
       for (let key in req.body) {

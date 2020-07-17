@@ -11,7 +11,7 @@ router.route("/").get(async (req, res) => {
         on "productId"=p._id group by ( "productId", p)) row`
     );
     let filter = result.rows.map((item) => item.row_to_json);
-    res.send(filter);
+    res.send({ data: filter });
   } catch (e) {
     console.log(e);
     res.status(500).send("Internal server error");
