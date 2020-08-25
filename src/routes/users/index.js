@@ -1,6 +1,8 @@
 const express = require("express");
 const db = require("../../db");
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
+const sgMail = require("@sendgrid/mail");
 const authorization = require("../../utils/auth");
 const router = express.Router();
 
@@ -25,7 +27,7 @@ router
           [req.body.name, req.body.surname, req.body.email, hash, req.body.role]
         )
         .then((r) => {
-          res.sendStatus(r.rowCount);
+          res.send(r.rowCount);
         });
     } catch (e) {
       console.log(e);
@@ -74,6 +76,41 @@ router
 router.route("/login").post(authorization, async (req, res, next) => {
   try {
     res.send(req.body.auth);
+  } catch (e) {
+    res.send(e);
+  }
+});
+
+router.route("/resetPass").post(async (req, res, next) => {
+  try {
+    let result = await db.query("SELECT * FROM users WHERE email = $1", [
+      req.body.email,
+    ]);
+    if (result.rowCount === 0) next("invalid email");
+    else {
+      const randomPass = crypto.randomBytes(20).toString("hex");
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      const msg = {
+        to: req.body.email,
+        from: "tetianayaremko@gmail.com", // Use the email address or domain you verified above
+        subject: "New password",
+        html: `<strong>${randomPass}</strong>`,
+      };
+      sgMail.send(msg).then(
+        () => {},
+        (error) => {
+          console.error(error);
+
+          if (error.response) {
+            console.error(error.response.body);
+          }
+        }
+      );
+      // const hash = await bcrypt.hash(randomPass, 12);
+      //
+      // await db.query("UPDATE users SET password = $1", [hash]);
+      res.send({ newPass: randomPass });
+    }
   } catch (e) {
     res.send(e);
   }
