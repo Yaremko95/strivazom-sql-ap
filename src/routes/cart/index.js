@@ -8,7 +8,7 @@ router.route("/").get(async (req, res) => {
     let result = await db.query(
       `SELECT  row_to_json(row) FROM (select  COUNT("productId") as quantity, SUM(p.price) as total, p AS product
        from carts inner join (select * from products) p
-        on "productId"=p._id group by ( "productId", p)) row`
+        on "productId"=p._id group by ( "productId", p)) row `
     );
     let filter = result.rows.map((item) => item.row_to_json);
     res.send({ data: filter });

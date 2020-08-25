@@ -62,13 +62,13 @@ router
                 req.body.name,
                 req.body.description,
                 req.body.brand,
-                req.file.filename,
+                `http://${process.env.PGHOST}:${process.env.PORT}/static/uploads/${req.file.filename}.png`,
                 req.body.category,
                 parseFloat(req.body.price),
               ]
             )
             .then((r) => {
-              res.send(req.file.path);
+              res.status(200).send(r.rowCount);
             });
         }
       });
@@ -93,7 +93,7 @@ router
       res.status(500).send("Internal server error");
     }
   })
-  .put(async (req, res) => {
+  .put(upload.single("file"), async (req, res) => {
     try {
       delete req.body.reviews;
       delete req.body.createdAt;
@@ -113,10 +113,22 @@ router
       }
       params.push(req.params.id);
       query += " WHERE _id = $" + params.length + " RETURNING *";
-      console.log(query);
-      const response = await db.query(query, params);
-      if (response.rowCount === 0) return res.status(404).send("Not Found");
-      res.send(response.rows[0]);
+      const file =
+        global.appRoot + "/public/uploads/" + `${req.file.filename}.png`;
+      const result = fs.rename(req.file.path, file, async function (err) {
+        if (err) {
+          console.log(err);
+          res.send(500);
+        } else {
+          const response = await db
+            .query(query, params)
+
+            .then((r) => {
+              return r.rowCount;
+            });
+        }
+      });
+      res.status(200).send(result);
     } catch (e) {
       console.log(e);
       res.status(500).send("Internal server error");
