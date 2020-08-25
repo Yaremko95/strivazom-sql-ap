@@ -55,6 +55,15 @@ router
       query += " WHERE _id = $" + params.length + " RETURNING *";
       console.log(query, params);
       let response = await db.query(query, params);
+      res.send(response.rows[0]);
+    } catch (e) {
+      console.log(e);
+      res.status(500).send("bad request");
+    }
+  })
+  .delete(authorization, async (req, res, next) => {
+    try {
+      await db.query("DELETE FROM  users WHERE _id = $1", [req.body.auth._id]);
       res.send("ok");
     } catch (e) {
       console.log(e);
