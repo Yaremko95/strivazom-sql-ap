@@ -31,11 +31,40 @@ router
       console.log(e);
       res.status(500).send("bad request");
     }
+  })
+  .put(authorization, async (req, res, next) => {
+    try {
+      const hash = await bcrypt.hash(req.body.password, 12);
+      const userId = req.body.auth._id;
+      delete req.body.auth;
+      const params = [];
+      let query = `UPDATE users SET `;
+      for (let key in req.body) {
+        query +=
+          (params.length > 0 ? ", " : "") +
+          '"' +
+          key +
+          '"' +
+          " = $" +
+          (params.length + 1);
+        if (key === "password") params.push(hash);
+        else params.push(req.body[key]);
+      }
+
+      params.push(userId);
+      query += " WHERE _id = $" + params.length + " RETURNING *";
+      console.log(query, params);
+      let response = await db.query(query, params);
+      res.send("ok");
+    } catch (e) {
+      console.log(e);
+      res.status(500).send("bad request");
+    }
   });
 
 router.route("/login").post(authorization, async (req, res, next) => {
   try {
-    res.send(req.body.user);
+    res.send(req.body.auth);
   } catch (e) {
     res.send(e);
   }

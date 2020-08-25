@@ -20,7 +20,7 @@ module.exports = async (req, res, next) => {
   } else {
     const compared = await bcrypt.compare(user.pass, result.rows[0].password);
     if (compared) {
-      req.body.user = result.rows[0];
+      req.body.auth = result.rows[0];
       next();
     } else {
       res.set("invalid login or password");
