@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../../db");
 const bcrypt = require("bcrypt");
+const authorization = require("../../utils/auth");
 const router = express.Router();
 
 router
@@ -32,35 +33,9 @@ router
     }
   });
 
-router.route("/login").post(async (req, res, next) => {
+router.route("/login").post(authorization, async (req, res, next) => {
   try {
-    if (!req.body.email || !req.body.password) {
-      const error = new Error("provide credentials");
-      error.httpStatusCode = 401;
-      next(error);
-    } else {
-      let user = await db.query("SELECT * FROM users WHERE email = $1", [
-        req.body.email,
-      ]);
-      console.log(user.rowCount);
-      if (user.rowCount === 0) {
-        const error = new Error("invalid login or password");
-        error.httpStatusCode = 401;
-        next(error);
-      } else {
-        const compared = await bcrypt.compare(
-          req.body.password,
-          user.rows[0].password
-        );
-        if (compared) {
-          res.send({ user: user.rows[0] });
-        } else {
-          const error = new Error("invalid login or password");
-          error.httpStatusCode = 401;
-          next(error);
-        }
-      }
-    }
+    res.send(req.body.user);
   } catch (e) {
     res.send(e);
   }
